@@ -1,78 +1,82 @@
-UEFA EURO 2024: Progressive Passers and Carriers Analysis
-This repository contains an event-level football analytics project identifying and visualizing the most impactful progressive players at UEFA EURO 2024. Using StatsBomb event data, the study quantifies how players move the ball forward through both passing and carrying.
+# UEFA EURO 2024: Progressive Passers and Carriers Analysis
 
-Project Overview
-The analysis provides a granular look at ball progression by moving beyond basic completion percentages. It answers critical tactical questions:
+## Overview
 
-Which players consistently break defensive lines?
+This project delivers an event-level analysis of ball progression during UEFA EURO 2024. Using raw coordinate data, the study identifies players who most effectively advanced the ball toward the opponent’s goal through completed passes and carries.  
 
-Where on the pitch does a team's progression typically originate?
+The workflow reflects a professional data analyst approach — moving from data extraction and spatial engineering to normalization and visualization — to generate actionable tactical insights.
 
-How do player roles differ between pass-dominant playmakers and carry-dominant runners?
+---
 
-The workflow covers the entire data pipeline, including extraction via the StatsBomb API, spatial tagging, minute estimation, and publication-quality visualization.
+## Dataset
 
-Technical Methodology
-1. Data Acquisition
-Data is pulled using the Sbopen helper from the mplsoccer library. The analysis utilizes the standard StatsBomb coordinate system (120 by 80 units) with the opponent goal centered at (120, 40).
+**Source:** StatsBomb Open Data via Sbopen  
+**Pitch Dimensions:** 120 x 80 units (goal centered at 120, 40)
 
-2. Progressive Action Definitions
-To ensure accuracy, specific spatial logic and Euclidean distance formulas are applied to categorize events:
+**Key Fields Utilized:**
 
-Progressive Passes
+- `player_name`, `team_name`
+- `type` (Pass or Carry)
+- `location` (x, y start coordinates)
+- `pass_end_location` (x, y end coordinates)
+- `timestamp` (minute, second, and period for playing time estimation)
 
-Reduces the distance to the opponent goal by 10 or more units when starting in the own half.
+---
 
-Reduces the distance to the opponent goal by 5 or more units when starting in the opponent half.
+## Workflow Summary
 
-Any completed pass ending in the final third (x coordinate 80 or greater).
+### 1. Data Load and Engineering
+- Extracted match and event-level data for the entire EURO 2024 tournament.
+- Calculated Euclidean distances from ball coordinates to the center of the opponent goal.
+- Derived absolute match minutes to estimate total playing time per player.
 
-Progressive Carries
+### 2. Progressive Event Tagging
+Progression was defined using spatial logic to ensure tactical relevance:
 
-Reduces the distance to the opponent goal by 5 or more units within the opponent half.
+- **Progressive Passes:** Tagged if the pass reduced distance to goal by:
+  - 10+ units in own half  
+  - 5+ units in opponent half  
+  - or ended inside the final third (`x >= 80`)
+- **Progressive Carries:** Tagged if the carry reduced distance to goal by:
+  - 5+ units in opponent half  
+  - or moved the ball 30+ units vertically
 
-Any carry moving the ball 30 or more units forward (long progressive carries).
+### 3. Aggregation and Normalization
+- Aggregated raw totals for progressive actions by player and team.
+- Normalized statistics to a **Per 90 minutes** basis for fair comparison between starters and substitutes.
+- Applied a **150-minute playing time filter** to remove small-sample outliers.
 
-3. Minute Estimation and Normalization
-Since exact playing time is not always provided in event feeds, this project implements a custom estimation logic:
+### 4. Visual Analysis
+- Created origin heatmaps (12 x 8 bins) to visualize where progressive actions were initiated.
+- Developed scatter plots comparing passing vs. carrying volume to categorize player archetypes:
+  - *Progressive Engines*  
+  - *Deep-lying Playmakers*  
 
-Calculation: Player minutes are derived by subtracting the timestamp of the first recorded event from the last recorded event for each match.
+---
 
-Normalization: Total counts are converted to Per 90 metrics.
+## SQL / Data Techniques Used
 
-Sample Size: A 150 minute minimum filter is applied to all rate-based leaderboards to ensure statistical reliability.
+- Spatial engineering with Euclidean distance calculations
+- Conditional tagging using logical thresholds
+- Aggregation (`SUM`, `COUNT`) and normalization (per 90 minutes)
+- Filtering for sample-size robustness
+- Visualization with heatmaps and scatter plots
 
-Repository Structure
-euros2024.ipynb: Comprehensive Jupyter Notebook containing the full analysis, code, and tactical commentary.
+---
 
-euros2024.py: A streamlined Python script for executing the data pipeline from extraction to visualization.
+## Repository Structure
+uefa-euro-2024-progressive-analysis/
+│
+├── data/
+│   └── euro2024_events.csv
+│
+├── notebooks/
+│   └── progressive_passes_carries.ipynb
+│
+├── visuals/
+│   ├── heatmaps/
+│   └── scatterplots/
+│
+├── README.md
 
-euro_plots/: Directory containing exported heatmaps and scatter plots.
 
-README.md: Project documentation and methodology overview.
-
-Visualizations and Insights
-Origin Heatmaps
-Using mplsoccer Pitch modules, the project generates heatmaps of action origins. This identifies whether a player is a Deep-lying Progressor (building from the back) or a Final-third Creator (operating in the pockets).
-
-Archetype Scatter Plot
-A dual-axis scatter plot compares Progressive Passes per 90 (x-axis) against Progressive Carries per 90 (y-axis). This categorizes players into distinct tactical profiles:
-
-Pass-Dominant: Elite distributors.
-
-Carry-Dominant: Dynamic wingers or fullbacks.
-
-High-Volume Progressors: Players who excel in both metrics, serving as the primary engines for their teams.
-
-Requirements
-The analysis requires Python 3.x and the following libraries:
-
-pandas
-
-numpy
-
-matplotlib
-
-seaborn
-
-mplsoccer
